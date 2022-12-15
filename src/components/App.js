@@ -1,0 +1,76 @@
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  loadAccount,
+  loadAllOrders,
+  loadExchange,
+  loadNetwork,
+  loadProvider,
+  loadTokens,
+  subscribeToEvents,
+} from "../store/interactions";
+import config from "../config.json";
+import Navbar from "./Navbar";
+import Markets from "./Markets";
+import Balance from "./Balance";
+import Order from "./Order";
+import OrderBook from "./OrderBook";
+import PriceChart from "./PriceChart";
+import Trades from "./Trades";
+import Transactions from "./Transactions";
+import Alert from "./Alert";
+function App() {
+  const dispatch = useDispatch();
+  const loadBlockchainData = async () => {
+    const provider = loadProvider(dispatch);
+    const chainId = await loadNetwork(provider, dispatch);
+    window.ethereum.on("accountsChanged", () => {
+      loadAccount(provider, dispatch);
+    });
+    window.ethereum.on("chainChanged", () => {
+      window.location.reload();
+    });
+    const subham = config[chainId].subham;
+    const mETH = config[chainId].mETH;
+    loadTokens(provider, [subham.address, mETH.address], dispatch);
+    const exchange_config = config[chainId].exchange;
+    const exchange = await loadExchange(
+      provider,
+      exchange_config.address,
+      dispatch
+    );
+    loadAllOrders(provider, exchange, dispatch);
+    subscribeToEvents(exchange, dispatch);
+  };
+  useEffect(() => {
+    loadBlockchainData();
+  });
+  return (
+    <div>
+      <Navbar />
+
+      <main className="exchange grid">
+        <section className="exchange__section--left grid">
+          <Markets />
+
+          <Balance />
+
+          <Order />
+        </section>
+        <section className="exchange__section--right grid">
+          <PriceChart />
+
+          <Transactions />
+
+          <Trades />
+
+          <OrderBook />
+        </section>
+      </main>
+
+      <Alert />
+    </div>
+  );
+}
+
+export default App;
